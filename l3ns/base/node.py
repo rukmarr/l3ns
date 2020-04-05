@@ -7,9 +7,13 @@ class BaseNode:
     def __init__(self, name: str = None):
         self.name = 'dunno' if name is None else name
         self._interfaces = {}
-        self.started = False
         self._routes = {}
         self._networks = []
+
+        self.loaded = False
+        self.started = False
+        self.is_router = False
+        self.is_gateway = False
 
     def connect_to(self,
                    other_node: 'BaseNode',
@@ -43,3 +47,29 @@ class BaseNode:
 
     def add_network(self, net):
         self._networks.append(net)
+
+    def turn_into_router(self):
+        if self.is_router:
+            return
+
+        self.is_router = False
+        self.add_instruction()
+
+    def load(self):
+        raise NotImplementedError()
+
+    def add_instruction(self, cmd_list):
+        raise NotImplementedError()
+
+    # TODO: proper realisation with Subnet optional argument
+    def get_ip(self, net=None):
+        if net is None:
+            return next(iter(self._interfaces.keys()), None)
+
+        else:
+            for ip, network in self._interfaces.items():
+                if network == net:
+                    return ip
+
+            return None
+

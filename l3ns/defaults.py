@@ -3,6 +3,6 @@ subnet_class = BaseSubnet
 
 
 from l3ns.base.network import Network
-network = Network('10.0.0.0/24')
+network = Network('10.0.0.0/16')
 
 

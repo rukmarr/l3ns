@@ -13,14 +13,19 @@ class BaseSubnet:
 
         self._nodes = {}
         self.started = False
+        self.loaded = False
 
+        for node in self.make_node_list_from_args(args):
+            self.add_node(node)
+
+    @classmethod
+    def make_node_list_from_args(cls, args):
         try:
             nodes_list = list(args[0])
-        except TypeError:
+        except (TypeError, IndexError):
             nodes_list = list(args)
 
-        for node in nodes_list:
-            self.add_node(node)
+        return nodes_list
 
     def add_node(self, node: 'l3ns.base.BaseNode'):
 
@@ -36,9 +41,18 @@ class BaseSubnet:
     def start(self):
         raise NotImplementedError()
 
+    def load(self):
+        raise NotImplementedError()
+
+    def stop(self):
+        raise NotImplementedError()
+
     def get_network(self):
         return self._network
 
     def get_gateway(self):
         # TODO after routers
         return None
+
+    def prefixlen(self):
+        return self._ip_range.prefixlen
