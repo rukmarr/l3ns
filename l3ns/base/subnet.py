@@ -56,3 +56,10 @@ class BaseSubnet:
 
     def prefixlen(self):
         return self._ip_range.prefixlen
+
+    def __repr__(self):
+        return '{class_name}({name}, {ip_range})'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            ip_range=self._ip_range
+        )

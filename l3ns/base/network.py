@@ -39,10 +39,10 @@ class Network:
         except IndexError:
             raise Exception('Network address pool is empty')
 
+        self._available_subnets.remove(subnet)
+
         if subnet.prefixlen == max_prefix:
             return subnet
-
-        self._available_subnets.remove(subnet)
 
         try:
             smaller_subnet = next(subnet.subnets(new_prefix=max_prefix))
@@ -54,18 +54,32 @@ class Network:
 
         return smaller_subnet
 
-    def start(self):
+    def start(self, interactive=False):
         if self.loaded:
             raise Exception('Network already loaded!')
 
-        for subnet in self._subets:
-            subnet.start()
+        if not interactive:
+            for subnet in self._subets:
+                subnet.start()
 
-        for node in self._nodes:
-            node.start()
+            for node in self._nodes:
+                node.start()
 
-        self.started = True
-        self.loaded = True
+            self.started = True
+            self.loaded = True
+
+        else:
+            try:
+                self.start(interactive=False)
+            except Exception as e:
+                print('\nException while starting:\n_________________\n\n', e, '\n_________________\n', sep='')
+
+            i = ''
+            while i not in ('y', 'n', 'yes', 'no'):
+                i = input('Stop? (y/n): ')
+
+            if i[0] == 'y':
+                self.stop()
 
     def load(self):
         for node in self._nodes:

@@ -57,7 +57,7 @@ class DockerNode(BaseNode):
         except StopIteration:
             raise Exception('Container {} has no initial net, check docker config')
 
-        if not self._interfaces and not self.connect_to_internet:
+        if self._interfaces or self.connect_to_internet:
             dc.networks.get(default_net).disconnect(self.container)
 
         for ip, network in self._interfaces.items():
