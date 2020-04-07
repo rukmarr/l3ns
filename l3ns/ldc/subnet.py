@@ -10,7 +10,7 @@ class DockerSubnet(BaseSubnet):
     def __init__(self, *args, size=1023, **kwargs):
         self.docker_network = None
 
-        super(DockerSubnet, self).__init__(*args, size=size + 1, **kwargs)
+        super().__init__(*args, size=size + 1, **kwargs)
         # minus one address for docker gateway
         self._docker_gateway = str(next(self._hosts))
 

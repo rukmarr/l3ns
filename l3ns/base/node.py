@@ -9,6 +9,7 @@ class BaseNode:
         self._interfaces = {}
         self._routes = {}
         self._networks = []
+        self._files = {}
 
         self.loaded = False
         self.started = False

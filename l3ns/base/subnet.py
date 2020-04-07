@@ -1,6 +1,7 @@
 import l3ns
 from l3ns import defaults
 
+
 class BaseSubnet:
 
     def __init__(self, name: str, *args, size: int = 1024, network: 'l3ns.base.Network' = None):

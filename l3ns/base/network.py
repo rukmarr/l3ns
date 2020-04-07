@@ -3,6 +3,7 @@ from math import log2, ceil
 from l3ns import defaults
 
 import concurrent.futures
+import traceback
 
 
 class Network:
@@ -71,8 +72,9 @@ class Network:
         else:
             try:
                 self.start(interactive=False)
-            except Exception as e:
-                print('\nException while starting:\n_________________\n\n', e, '\n_________________\n', sep='')
+            except:
+                print('\nException while starting:\n_________________\n\n',
+                      traceback.format_exc(), '\n_________________\n', sep='')
 
             i = ''
             while i not in ('y', 'n', 'yes', 'no'):
