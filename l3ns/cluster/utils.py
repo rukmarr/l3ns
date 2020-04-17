@@ -84,6 +84,9 @@ class ClusterHost:
         return stdout.channel.recv_exit_status(), stdout.read().decode(), stderr.read().decode()
 
 
+def my_hash(*args):
+    return str(hash(tuple(args)) % 10 ** 8)
+
 
 if __name__ == "__main__":
 

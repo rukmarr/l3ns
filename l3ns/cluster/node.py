@@ -2,12 +2,8 @@ import os
 import hashids
 
 from l3ns.ldc import DockerSubnet, DockerNode
-from l3ns.cluster.utils import generate_wg_keys, ClusterHost, vpn_server_address
+from l3ns.cluster.utils import my_hash, generate_wg_keys, ClusterHost, vpn_server_address
 from l3ns.cluster import WgSubnet
-
-
-def my_hash(*args):
-    return str(hash(tuple(args)) % 10 ** 8)
 
 
 node_config_template = '''[Interface]
@@ -45,11 +41,10 @@ class RemoteNode(DockerNode):
 
         self._client = cluster_host.get_docker_client()
 
-    def _connect_network(self, network, ip, dc=None):
-        dc = dc or self._client
+    def _connect_subnet(self, network, ip):
 
         if isinstance(network, DockerSubnet):
-            super()._connect_network(network, ip, dc=dc)
+            super()._connect_subnet(network, ip)
         elif isinstance(network, WgSubnet):
             # connect to wg_subnet
 

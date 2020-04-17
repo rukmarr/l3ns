@@ -4,7 +4,7 @@ import shutil
 
 from l3ns.base import BaseSubnet
 from l3ns.ldc import DockerSubnet
-from l3ns.cluster.utils import generate_wg_keys, find_free_port
+from l3ns.cluster.utils import my_hash, generate_wg_keys, find_free_port
 
 server_config_template = '''[Interface]
 ListenPort = {listen_port}
@@ -38,7 +38,7 @@ class WgSubnet(BaseSubnet):
         self.listen_port = None
 
         # TODO: proper config for this
-        self.interface_name = 'wg-' + self.name
+        self.interface_name = 'wg-' + my_hash(self.name)
         self.config_folder = '/tmp/l3ns/' + self.name
         self.config_filename = os.path.join(self.config_folder, 'wg.conf')
 

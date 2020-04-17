@@ -13,4 +13,4 @@ n2 = DockerNode(image='alpine', command='tail -f /dev/null', name='test2')
 
 n1.connect_to(n2)
 
-defaults.network.start()
+defaults.network.start(interactive=True)

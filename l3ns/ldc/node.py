@@ -5,23 +5,21 @@ import os
 
 from l3ns.base import BaseNode
 from l3ns.ldc.utils import docker_client
+from l3ns.ldc.subnet import DockerSubnet
 
 
 class DockerNode(BaseNode):
     lock_filepath = '/var/run/l3ns.lock'
 
-    def __init__(self, name=None, connect_to_internet=False, **docker_kwargs):
+    def __init__(self, name=None, **docker_kwargs):
         self._client = docker_client
         self._docker_kwargs = docker_kwargs
-        self.connect_to_internet = connect_to_internet
         self.container = None
         self.image = None  # not a name, but docker-py object
         super(DockerNode, self).__init__(name=name)
 
-    def _connect_network(self, network, ip, dc=None):
-        dc = dc or self._client
-
-        dc.networks.get(network.name).connect(self.container, ipv4_address=ip)
+    def _connect_subnet(self, subnet, ip):
+        self._client.networks.get(subnet.name).connect(self.container, ipv4_address=ip)
 
     @staticmethod
     def _shell_entrypoint(entrypoint):
@@ -68,9 +66,12 @@ class DockerNode(BaseNode):
         # for some reason docker messes up while loop if cmd is a string
         return ret_entrypoint, [ret_cmd]
 
-    def start(self, dc=None):
+    def _start(self, dc=None):
 
-        dc = dc or self._client
+        if dc:
+            self._client = dc
+        else:
+            dc = self._client
 
         if self.started:
             return self.container
@@ -80,15 +81,18 @@ class DockerNode(BaseNode):
         try:
             self.image = dc.images.get(self._docker_kwargs['image'])
         except docker.errors.ImageNotFound:
-            self.image = dc.images.pull(self._docker_kwargs['image'])
-
-        for net in self._networks:
-            gateway = self.get_gateway(net)
-
-            if gateway:
-                self._routes[net.ip_range] = self.get_gateway(net)
+            print('No {} image found locally, trying to pull...'.format(self._docker_kwargs['image']))
+            self.image = dc.images.pull(self._docker_kwargs['image'], tag='latest')
 
         self._docker_kwargs['entrypoint'], self._docker_kwargs['command'] = self._make_entrypoint()
+
+        if 'cap_add' in self._docker_kwargs:
+            try:
+                self._docker_kwargs['cap_add'].append('NET_ADMIN')
+            except AttributeError:
+                self._docker_kwargs['cap_add'] = ['NET_ADMIN', self._docker_kwargs['cap_add']]
+        else:
+            self._docker_kwargs['cap_add'] = 'NET_ADMIN'
 
         # print(self.name, self._docker_kwargs['entrypoint'] + self._docker_kwargs['command'], sep=': ')
 
@@ -108,10 +112,8 @@ class DockerNode(BaseNode):
         if self._interfaces or self.connect_to_internet:
             dc.networks.get(default_net).disconnect(self.container)
 
-        for ip, network in self._interfaces.items():
-            self._connect_network(network, ip, dc=dc)
-
-        print('node', self.name, 'started')
+        for path, string in self._files.items():
+            self.put_sting(path, string)
 
         self.put_sting(self.lock_filepath, '')
 
@@ -159,3 +161,19 @@ class DockerNode(BaseNode):
 
         else:
             self._files[path] = string
+
+    def _deploy_routes(self):
+
+        if any([isinstance(n, DockerSubnet) for n in self.subnets]) and not self.connect_to_internet:
+            status_code, output = self.container.exec_run('ip route delete default')
+
+            if status_code:
+                print('Error({2}) while removing default docker route for {0}:\n{1}'.format(
+                    self.name, output.decode(), status_code))
+
+        for ip_range, gateway in self._routes.items():
+            status_code, output = self.container.exec_run('ip route add {} via '.format(ip_range) + gateway)
+            if status_code:
+                print('Error({2}) while setting routes for {0}:\n{1}'.format(self.name, output.decode(), status_code))
+
+

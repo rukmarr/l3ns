@@ -29,7 +29,7 @@ class Network:
         if subnet_type is None:
             subnet_type = defaults.subnet_class
 
-        subnet_type(subnet_name, *args, netork=self, **kwargs)
+        return subnet_type(subnet_name, *args, network=self, **kwargs)
 
     def get_subnet_range(self, size: int):
         max_prefix = 32 - ceil(log2(size + 2))

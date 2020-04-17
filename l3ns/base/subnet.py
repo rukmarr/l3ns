@@ -51,12 +51,27 @@ class BaseSubnet:
     def get_network(self):
         return self._network
 
-    def get_gateway(self):
-        # TODO after routers
-        return None
+    def get_gateway(self, node):
+        router = None
+
+        for ip, n in self._nodes.items():
+
+            if n is node:
+                continue
+
+            if n.is_gateway:
+                return ip
+
+            if not router and n.is_router:
+                router = ip
+
+        return router
 
     def prefixlen(self):
         return self._ip_range.prefixlen
+
+    def get_ip_range(self):
+        return self._ip_range
 
     def __repr__(self):
         return '{class_name}({name}, {ip_range})'.format(

@@ -21,12 +21,5 @@ r = RemoteNode('test3', host2, image='alpine', command='tail -f /dev/null')
 r.connect_to(n1, subnet_class=WgSubnet)
 r.connect_to(n2, subnet_class=WgSubnet)
 
-try:
-    defaults.network.start()
-except Exception as e:
-    print('\n_________________\n\n', e, '\n_________________\n', sep='')
-
-input('Stop? ')
-
-defaults.network.stop()
+defaults.network.start(interactive=True)
 

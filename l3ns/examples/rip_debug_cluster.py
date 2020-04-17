@@ -5,9 +5,12 @@ sys.path.append('/home/panda')
 
 from l3ns.ldc import DockerNode, DockerSubnet
 from l3ns import defaults, net
+from l3ns.cluster import RemoteNode, WgSubnet, ClusterHost
 
+defaults.subnet_class = WgSubnet
 
-defaults.subnet_class = DockerSubnet
+host1 = ClusterHost('t2')
+host2 = ClusterHost('t3')
 
 config_template ='''router rip
 network {ip_range}
@@ -17,14 +20,19 @@ redistribute static
 redistribute connected
 '''
 
-routers = [DockerNode(
+routers = [RemoteNode(
+    cluster_host=host1,
     image='frrouting/frr',
     entrypoint="sed -i 's/ripd=no/ripd=yes/' /etc/frr/daemons && /usr/lib/frr/docker-start",
     name='router_%d' % (i+1),
     privileged=True
 ) for i in range(2)]
 
-nodes = [DockerNode(image='alpine', command='tail -f /dev/null', name='node_%d' % (i+1)) for i in range(2)]
+nodes = [RemoteNode(
+    cluster_host=host2,
+    image='alpine',
+    command='tail -f /dev/null',
+    name='node_%d' % (i+1)) for i in range(2)]
 
 router_net = net.create_subnet('router_net', routers, size=4)
 
