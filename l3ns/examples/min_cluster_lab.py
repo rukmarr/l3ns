@@ -1,7 +1,3 @@
-import sys
-sys.path.append('/home/panda')
-
-from l3ns.ldc import DockerNode, DockerSubnet
 from l3ns import defaults
 from l3ns.cluster import RemoteNode, WgSubnet, ClusterHost
 

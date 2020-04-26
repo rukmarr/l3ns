@@ -7,11 +7,12 @@ from contextlib import closing
 import docker
 import paramiko
 
-#TODO: move to config
+# TODO: move to config
 vpn_server_address = 't1'
 
 known_hosts_path = os.path.expanduser(os.path.join("~", ".ssh", "known_hosts"))
 private_key_path = os.path.expanduser(os.path.join("~", ".ssh", "id_rsa"))
+
 
 def generate_wg_keys():
     cmd = 'wg genkey | tee /dev/stderr | wg pubkey'
@@ -62,7 +63,7 @@ class ClusterHost:
         while not self.test_client():
             time.sleep(0.5)
 
-    def get_docker_client(self):
+    def get_docker_client(self) -> docker.DockerClient:
         return docker.DockerClient(base_url='tcp://127.0.0.1:{}'.format(self.docker_port))
 
     def test_client(self):
@@ -86,11 +87,3 @@ class ClusterHost:
 
 def my_hash(*args):
     return str(hash(tuple(args)) % 10 ** 8)
-
-
-if __name__ == "__main__":
-
-    host = ClusterHost('wombat2.dltc.spbu.ru', 'panda')
-
-    dc = host.get_docker_client()
-

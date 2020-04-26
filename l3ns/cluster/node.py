@@ -1,9 +1,9 @@
 import os
 import hashids
 
-from l3ns.ldc import DockerSubnet, DockerNode
-from l3ns.cluster.utils import my_hash, generate_wg_keys, ClusterHost, vpn_server_address
-from l3ns.cluster import WgSubnet
+from .. import ldc
+from .utils import my_hash, generate_wg_keys, ClusterHost, vpn_server_address
+from .subnet import WgSubnet
 
 
 node_config_template = '''[Interface]
@@ -29,21 +29,21 @@ ip -n {c_id} link set {ifc} up
 '''
 
 
-class RemoteNode(DockerNode):
+class RemoteNode(ldc.DockerNode):
 
-    def __init__(self, name, cluster_host: 'ClusterHost', *args, **kwargs):
+    def __init__(self, name, cluster_host: 'ClusterHost', **kwargs):
         self.cluster_host = cluster_host
         self.config_path = os.path.join('/tmp/l3ns', name) + '.conf'
 
         self.private_key, self.public_key = generate_wg_keys()
 
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, **kwargs)
 
         self._client = cluster_host.get_docker_client()
 
     def _connect_subnet(self, network, ip):
 
-        if isinstance(network, DockerSubnet):
+        if isinstance(network, ldc.DockerSubnet):
             super()._connect_subnet(network, ip)
         elif isinstance(network, WgSubnet):
             # connect to wg_subnet

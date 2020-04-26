@@ -26,6 +26,7 @@ Welcome to the L3 Network Simulator repository.
 * окончателно убрасть параметр `dc` отовсюду
 * нормальные логи
 * тесты
+* str для `ldc.Subnet`
 
 
 #### Done:

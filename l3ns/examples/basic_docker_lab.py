@@ -1,15 +1,8 @@
-
-import sys
-sys.path.append('/home/panda')
-
-
-from l3ns.ldc import DockerNode, DockerSubnet
+from l3ns.ldc import DockerNode
 from l3ns import defaults
 
-defaults.subnet_class = DockerSubnet
-
-n1 = DockerNode(image='alpine', command='tail -f /dev/null', name='test1')
-n2 = DockerNode(image='alpine', command='tail -f /dev/null', name='test2')
+n1 = DockerNode('test1', image='alpine', command='tail -f /dev/null')
+n2 = DockerNode('test2', image='alpine', command='tail -f /dev/null')
 
 n1.connect_to(n2)
 

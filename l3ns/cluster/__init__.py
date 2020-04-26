@@ -1,3 +1,3 @@
-from .subnet import WgSubnet, make_cluster_subnet
+from .subnet import WgSubnet
 from .node import RemoteNode
 from .utils import ClusterHost

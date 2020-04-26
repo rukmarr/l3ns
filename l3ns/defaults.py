@@ -1,8 +1,7 @@
-from l3ns.base.subnet import BaseSubnet
-subnet_class = BaseSubnet
+import l3ns.base.network
+network = l3ns.base.network.Network('22.0.0.0/16')
 
-
-from l3ns.base.network import Network
-network = Network('10.0.0.0/16')
+import l3ns.ldc.subnet
+subnet_class = l3ns.ldc.subnet.DockerSubnet
 
 

@@ -3,23 +3,23 @@ import tarfile
 import io
 import os
 
-from l3ns.base import BaseNode
-from l3ns.ldc.utils import docker_client
-from l3ns.ldc.subnet import DockerSubnet
+from .. import base
+from . import utils
+from .subnet import DockerSubnet
 
 
-class DockerNode(BaseNode):
+class DockerNode(base.BaseNode):
     lock_filepath = '/var/run/l3ns.lock'
 
-    def __init__(self, name=None, **docker_kwargs):
-        self._client = docker_client
+    def __init__(self, name, **docker_kwargs):
+        self._client = utils.docker_client
         self._docker_kwargs = docker_kwargs
         self.container = None
         self.image = None  # not a name, but docker-py object
-        super(DockerNode, self).__init__(name=name)
+        super().__init__(name=name)
 
     def _connect_subnet(self, subnet, ip):
-        self._client.networks.get(subnet.name).connect(self.container, ipv4_address=ip)
+        subnet.docker_network.connect(self.container, ipv4_address=ip)
 
     @staticmethod
     def _shell_entrypoint(entrypoint):
@@ -28,7 +28,7 @@ class DockerNode(BaseNode):
             return entrypoint
 
         else:
-            return ' '.join(entrypoint)
+            return ' '.join('"{}"'.format(s) for s in entrypoint)
 
     def _make_entrypoint(self):
         entrypoint = ('entrypoint' in self._docker_kwargs and self._docker_kwargs['entrypoint']) \
@@ -48,7 +48,7 @@ class DockerNode(BaseNode):
         elif type(entrypoint) is str:
             ret_cmd += entrypoint
 
-        elif 'sh' in entrypoint[0] and entrypoint[1] == '-c':
+        elif len(entrypoint) >= 2 and 'sh' in entrypoint[0] and entrypoint[1] == '-c':
 
             ret_entrypoint = entrypoint[:2]
 
@@ -82,7 +82,15 @@ class DockerNode(BaseNode):
             self.image = dc.images.get(self._docker_kwargs['image'])
         except docker.errors.ImageNotFound:
             print('No {} image found locally, trying to pull...'.format(self._docker_kwargs['image']))
-            self.image = dc.images.pull(self._docker_kwargs['image'], tag='latest')
+
+            image = self._docker_kwargs['image']
+
+            if ':' in image:
+                image, tag = self._docker_kwargs['image'].split(':', maxsplit=2)
+            else:
+                tag = 'latest'
+
+            self.image = dc.images.pull(image, tag=tag)
 
         self._docker_kwargs['entrypoint'], self._docker_kwargs['command'] = self._make_entrypoint()
 
@@ -176,4 +184,24 @@ class DockerNode(BaseNode):
             if status_code:
                 print('Error({2}) while setting routes for {0}:\n{1}'.format(self.name, output.decode(), status_code))
 
+    @classmethod
+    def make_router(cls, *args, **kwargs):
 
+        kwargs = kwargs.copy()
+        kwargs['image'] = 'frrouting/frr'
+        kwargs['entrypoint'] = '/usr/lib/frr/docker-start'
+        # TODO: change to cap_add
+        kwargs['privileged'] = True
+
+        router = cls(*args, **kwargs)
+
+        router.is_router = True
+
+        return router
+
+    def activate_protocol(self, protocol: str, config: str):
+        daemon_name = protocol.lower() + 'd'
+        cmd = "sed -i 's/{daemon}=no/{daemon}=yes/' /etc/frr/daemons &&".format(daemon=daemon_name)
+        self._docker_kwargs['entrypoint'] = cmd + self._docker_kwargs['entrypoint']
+
+        self.put_sting('/etc/frr/{}.conf'.format(daemon_name), config)

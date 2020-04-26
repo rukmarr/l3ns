@@ -1,14 +1,14 @@
-import l3ns
-from l3ns import defaults
-from ipaddress import IPv4Address
+from .. import defaults
+from . import subnet as base_subnet
+
 
 class BaseNode:
 
-    def __init__(self, name, network: 'l3ns.base.Network' = defaults.network, internet_connection=False):
+    def __init__(self, name, internet_connection=False):
         self.name = name
         self._interfaces = {}
         self._routes = {}
-        self._networks = [network]
+        self._networks = []
         self._files = {}
 
         self.loaded = False
@@ -31,7 +31,7 @@ class BaseNode:
 
         return subnet_class(subnet_name, self, other_node, **subnet_kwargs)
 
-    def add_interface(self, ip_address, subnet: 'l3ns.base.BaseSubnet'):
+    def add_interface(self, ip_address, subnet: 'base_subnet.BaseSubnet'):
         self._interfaces[ip_address] = subnet
 
     def _start(self, *args, **kwargs):
@@ -91,9 +91,6 @@ class BaseNode:
     def load(self):
         raise NotImplementedError()
 
-    def add_instruction(self, cmd_list):
-        raise NotImplementedError()
-
     # TODO: proper realisation with Subnet optional argument
     def get_ip(self, net=None):
         if net is None:
@@ -106,6 +103,23 @@ class BaseNode:
 
             return None
 
-    def __repr__(self):
-        return '<{class_name}({name}, {ip})'.format(class_name=self.__class__.__name__, name=self.name, ip=self.get_ip())
+    @classmethod
+    def make_router(cls, *args, **kwargs):
+        raise NotImplementedError()
 
+    @classmethod
+    def generate_nodes(cls, name_prefix, amount, *args, **kwargs):
+        return [cls(name_prefix + str(i+1), *args, **kwargs) for i in range(amount)]
+
+    @classmethod
+    def generate_routers(cls, name_prefix, amount, *args, **kwargs):
+        return [cls.make_router(name_prefix + str(i+1), *args, **kwargs) for i in range(amount)]
+
+    def activate_protocol(self, protocol, config):
+        raise NotImplementedError()
+
+    def __repr__(self):
+        return '<{class_name}({name}, {ip})'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            ip=self.get_ip())

@@ -1,11 +1,7 @@
-import docker
-import sys
-sys.path.append('/home/panda')
-
-
 from l3ns.ldc import DockerNode, DockerSubnet
 from l3ns.base.network import Network, NetworkConcurrent
 
+import sys
 
 N = 1000
 

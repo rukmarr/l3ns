@@ -1,6 +1,6 @@
 from ipaddress import ip_network, IPv4Network
 from math import log2, ceil
-from l3ns import defaults
+from .. import defaults
 
 import concurrent.futures
 import traceback
@@ -11,7 +11,7 @@ class Network:
     def __init__(self, ip_range: str or IPv4Network, local=False):
         self.ip_range = str(ip_range)
         self._available_subnets = [ip_network(ip_range) if type(ip_range) is str else ip_range, ]
-        self._subets = set()
+        self._subnets = set()
         self._nodes = set()
         self.is_local = local
 
@@ -23,7 +23,7 @@ class Network:
         node.add_network(self)
 
     def add_subnet(self, subnet):
-        self._subets.add(subnet)
+        self._subnets.add(subnet)
 
     def create_subnet(self, subnet_name, *args, subnet_type: type = None, **kwargs):
         if subnet_type is None:
@@ -60,7 +60,7 @@ class Network:
             raise Exception('Network already loaded!')
 
         if not interactive:
-            for subnet in self._subets:
+            for subnet in self._subnets:
                 subnet.start()
 
             for node in self._nodes:
@@ -87,7 +87,7 @@ class Network:
         for node in self._nodes:
             node.load()
 
-        for subnet in self._subets:
+        for subnet in self._subnets:
             subnet.load()
 
     def stop(self):
@@ -97,8 +97,11 @@ class Network:
         for node in self._nodes:
             node.stop()
 
-        for subnet in self._subets:
+        for subnet in self._subnets:
             subnet.stop()
+
+    def __contains__(self, item):
+        return item in self._nodes or item in self._subnets
 
 
 class NetworkConcurrent(Network):
@@ -107,11 +110,13 @@ class NetworkConcurrent(Network):
         self.max_workers = max_workers
         super().__init__(*args, **kwargs)
 
-    def start(self):
+    def start(self, interactive=False):
+        # TODO: debug & interactive realisation
+
         if self.loaded:
             raise Exception('Network already loaded!')
 
-        for subnet in self._subets:
+        for subnet in self._subnets:
             subnet.start()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -122,12 +127,12 @@ class NetworkConcurrent(Network):
         self.loaded = True
 
     def stop(self):
-        '''if not self.loaded:
-            self.load()'''
+        if not self.loaded:
+            self.load()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             for node in self._nodes:
                 executor.submit(node.stop, dc=None)
 
-        for subnet in self._subets:
+        for subnet in self._subnets:
             subnet.stop()

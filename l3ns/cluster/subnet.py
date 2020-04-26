@@ -2,9 +2,10 @@ import os
 import subprocess
 import shutil
 
-from l3ns.base import BaseSubnet
-from l3ns.ldc import DockerSubnet
-from l3ns.cluster.utils import my_hash, generate_wg_keys, find_free_port
+from .. import base
+from .. import ldc
+from .utils import my_hash, generate_wg_keys, find_free_port
+from .. import utils
 
 server_config_template = '''[Interface]
 ListenPort = {listen_port}
@@ -29,7 +30,7 @@ iptables -A FORWARD -i {ifc} -o {ifc} -m conntrack --ctstate NEW -j ACCEPT
 '''
 
 
-class WgSubnet(BaseSubnet):
+class WgSubnet(base.BaseSubnet):
 
     def __init__(self, *args, size=1023, **kwargs):
         super().__init__(*args, size=size + 1, **kwargs)
@@ -42,7 +43,7 @@ class WgSubnet(BaseSubnet):
         self.config_folder = '/tmp/l3ns/' + self.name
         self.config_filename = os.path.join(self.config_folder, 'wg.conf')
 
-        self._vpn_server_ip = str(next(self._hosts))
+        self._vpn_server_ip = self._get_host_ip()
 
     def make_server_config(self):
         self.listen_port = find_free_port()
@@ -65,7 +66,7 @@ class WgSubnet(BaseSubnet):
         try:
             os.mkdir(self.config_folder)
         except FileExistsError:
-            pass # TODO: for now
+            pass  # TODO: for now
 
         with open(self.config_filename, 'w') as config_file:
             config_file.write(self.make_server_config())
@@ -101,20 +102,21 @@ class WgSubnet(BaseSubnet):
         try:
             shutil.rmtree(self.config_folder)
         except FileNotFoundError:
-            print('Error while removing subnet ' + self.name + ':', 'WireGuard config directory does not exist', sep='\n')
+            print('Error while removing subnet ' + self.name + ':',
+                  'WireGuard config directory does not exist', sep='\n')
 
         print('subnet', self.name, 'stopped')
 
+    @classmethod
+    def make_subnet(cls, *args, size=1023, network=None):
+        node_list = utils.args.list_from_args(args)
 
-def make_cluster_subnet(*args, size=1023, network=None):
-    node_list = BaseSubnet.make_node_list_from_args(args)
+        try:
+            cluster_host_set = set([node.cluster_host for node in node_list])
+        except AttributeError:
+            raise Exception("Only RemoteNodes can be in the ClusterSubnet")
 
-    try:
-        cluster_host_set = set([node.cluster_host for node in node_list])
-    except AttributeError:
-        raise Exception("Only RemoteNodes can be in the ClusterSubnet")
-
-    if len(cluster_host_set) == 1:
-        return DockerSubnet(*args, size=size, network=network)
-    else:
-        return WgSubnet(*args, size=size, network=network)
+        if len(cluster_host_set) == 1:
+            return ldc.DockerSubnet(*args, size=size, network=network)
+        else:
+            return cls(*args, size=size, network=network)

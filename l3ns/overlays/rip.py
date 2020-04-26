@@ -1,18 +1,19 @@
+from .base import BaseOverlay
+
+config_template = '''router rip
+{}
+
+redistribute kernel
+redistribute static
+redistribute connected
+'''
 
 
+class RipOverlay(BaseOverlay):
 
-class RipOverlay:
+    protocol = 'RIP'
 
-    def __init__(self, nodes):
+    def configure_node(self, node):
+        config = config_template.format('\n'.join(['network {}'.format(s) for s in self._node_subnets(node)]))
 
-        self.nodes = []
-
-        for node in nodes:
-            self.add_node(node)
-
-
-    def add_node(self, node):
-        self.nodes.append(node)
-        node.turn_into_router()
-
-        node.add_instructions(['rip -d'])
+        node.activate_protocol(self.protocol, config)

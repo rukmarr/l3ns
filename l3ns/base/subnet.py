@@ -1,42 +1,42 @@
-import l3ns
-from l3ns import defaults
+from .. import defaults
+from .. import utils
+from . import network as base_network
+from . import node as base_node
 
 
 class BaseSubnet:
 
-    def __init__(self, name: str, *args, size: int = 1024, network: 'l3ns.base.Network' = None):
+    def __init__(self, name: str, *args, size: int = 1024, network: 'base_network.Network' = None):
         self.name = name
         self._network = network if network is not None else defaults.network
         self._network.add_subnet(self)
         self._max_size = size
         self._ip_range = self._network.get_subnet_range(self._max_size)
-        self._hosts = self._ip_range.hosts()
+        self._hosts = list(self._ip_range.hosts())
 
         self._nodes = {}
         self.started = False
         self.loaded = False
 
-        for node in self.make_node_list_from_args(args):
+        for node in utils.args.list_from_args(args):
             self.add_node(node)
 
-    @classmethod
-    def make_node_list_from_args(cls, args):
+    def __iter__(self):
+        return iter(self._nodes)
+
+    def _get_host_ip(self):
         try:
-            nodes_list = list(args[0])
-        except (TypeError, IndexError):
-            nodes_list = list(args)
+            return str(self._hosts.pop(0))
+        except IndexError:
+            raise Exception('Network {} is too small'.format(self.name))
 
-        return nodes_list
+    def add_node(self, node: 'base_node.BaseNode'):
 
-    def add_node(self, node: 'l3ns.base.BaseNode'):
-
-        try:
-            ip_address = str(next(self._hosts))
-        except StopIteration:
-            raise Exception("Too many nodes in network")
+        ip_address = self._get_host_ip()
 
         self._nodes[ip_address] = node
-        self._network.add_node(node)
+        if node not in self._network:
+            self._network.add_node(node)
         node.add_interface(ip_address, self)
 
     def start(self):
@@ -79,3 +79,9 @@ class BaseSubnet:
             name=self.name,
             ip_range=self._ip_range
         )
+
+    def __contains__(self, item):
+        return item in self._nodes.values()
+
+    def __str__(self):
+        return str(self._ip_range)
