@@ -116,15 +116,30 @@ class NetworkConcurrent(Network):
         if self.loaded:
             raise Exception('Network already loaded!')
 
-        for subnet in self._subnets:
-            subnet.start()
+        if not interactive:
+            for subnet in self._subnets:
+                subnet.start()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            for node in self._nodes:
-                executor.submit(node.start, dc=None)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                for node in self._nodes:
+                    executor.submit(node.start, dc=None)
 
-        self.started = True
-        self.loaded = True
+            self.started = True
+            self.loaded = True
+
+        else:
+            try:
+                self.start(interactive=False)
+            except:
+                print('\nException while starting:\n_________________\n\n',
+                      traceback.format_exc(), '\n_________________\n', sep='')
+
+            i = ''
+            while i not in ('y', 'n', 'yes', 'no'):
+                i = input('Stop? (y/n): ')
+
+            if i[0] == 'y':
+                self.stop()
 
     def stop(self):
         if not self.loaded:

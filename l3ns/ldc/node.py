@@ -2,6 +2,7 @@ import docker
 import tarfile
 import io
 import os
+import time
 
 from .. import base
 from . import utils
@@ -123,9 +124,15 @@ class DockerNode(base.BaseNode):
         for path, string in self._files.items():
             self.put_sting(path, string)
 
+        return self.container
+
+    def start(self, *args, **kwargs):
+        ret = super().start(*args, **kwargs)
+
+        # TODO: not the best decision, but we need to avoid starting container before routes are set up
         self.put_sting(self.lock_filepath, '')
 
-        return self.container
+        return ret
 
     def load(self, dc=None):
 
