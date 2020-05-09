@@ -5,7 +5,7 @@ from l3ns import defaults
 import sys
 
 if sys.argv[2] == 'c':
-    defaults.network = NetworkConcurrent('15.0.0.0/16', max_workers=2)
+    defaults.network = NetworkConcurrent('15.0.0.0/16', max_workers=8)
 else:
     defaults.network = Network('15.0.0.0/16')
 
@@ -17,7 +17,11 @@ nodes = []
 
 
 for i in range(N):
-    n = DockerNode(image='alpine', command='tail -f /dev/null' if not len(nodes) else 'ping {}'.format(nodes[-1].get_ip()), name='l3ns_node_' + str(i+1))
+    n = DockerNode(
+        'l3ns_node_' + str(i + 1),
+        image='l3ns/ts_ping',
+        command='tail -f /dev/null' if not len(nodes)
+                else 'ping {} | ts "[%H:%M:%S]"'.format(nodes[int(i/10)].get_ip()))
     nodes.append(n)
     s.add_node(n)
 

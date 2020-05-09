@@ -5,6 +5,8 @@ from .. import defaults
 import concurrent.futures
 import traceback
 
+import time
+
 
 class Network:
 
@@ -66,6 +68,9 @@ class Network:
             for node in self._nodes:
                 node.start()
 
+            for node in self._nodes:
+                node.unlock()
+
             self.started = True
             self.loaded = True
 
@@ -123,6 +128,12 @@ class NetworkConcurrent(Network):
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 for node in self._nodes:
                     executor.submit(node.start, dc=None)
+
+            print('start time:', time.strftime('[%H:%M:%S]', time.gmtime()))
+
+            # TODO: executor here too
+            for node in self._nodes:
+                node.unlock()
 
             self.started = True
             self.loaded = True

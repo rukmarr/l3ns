@@ -3,6 +3,7 @@ from . import subnet as base_subnet
 
 
 class BaseNode:
+    lock_filepath = '/var/run/l3ns.lock'
 
     def __init__(self, name, internet_connection=False):
         self.name = name
@@ -127,3 +128,10 @@ class BaseNode:
             class_name=self.__class__.__name__,
             name=self.name,
             ip=self.get_ip())
+
+    def unlock(self):
+        # TODO: not the best decision, but we need to avoid starting container before routes are set up
+        self.put_string(self.lock_filepath, '')
+
+    def put_string(self, path, string):
+        raise NotImplementedError()

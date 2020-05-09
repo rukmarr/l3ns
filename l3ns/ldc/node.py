@@ -10,7 +10,6 @@ from .subnet import DockerSubnet
 
 
 class DockerNode(base.BaseNode):
-    lock_filepath = '/var/run/l3ns.lock'
 
     def __init__(self, name, **docker_kwargs):
         self._client = utils.docker_client
@@ -122,17 +121,9 @@ class DockerNode(base.BaseNode):
             dc.networks.get(default_net).disconnect(self.container)
 
         for path, string in self._files.items():
-            self.put_sting(path, string)
+            self.put_string(path, string)
 
         return self.container
-
-    def start(self, *args, **kwargs):
-        ret = super().start(*args, **kwargs)
-
-        # TODO: not the best decision, but we need to avoid starting container before routes are set up
-        self.put_sting(self.lock_filepath, '')
-
-        return ret
 
     def load(self, dc=None):
 
@@ -157,7 +148,7 @@ class DockerNode(base.BaseNode):
         except Exception as e:
             print('error while removing node {}: {}'.format(self.name, e))
 
-    def put_sting(self, path, string):
+    def put_string(self, path, string):
         if self.loaded:
 
             tar = tarfile.TarFile(mode='w', fileobj=io.BytesIO())
@@ -211,4 +202,4 @@ class DockerNode(base.BaseNode):
         cmd = "sed -i 's/{daemon}=no/{daemon}=yes/' /etc/frr/daemons &&".format(daemon=daemon_name)
         self._docker_kwargs['entrypoint'] = cmd + self._docker_kwargs['entrypoint']
 
-        self.put_sting('/etc/frr/{}.conf'.format(daemon_name), config)
+        self.put_string('/etc/frr/{}.conf'.format(daemon_name), config)
