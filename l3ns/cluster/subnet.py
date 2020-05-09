@@ -55,7 +55,7 @@ class WgSubnet(base.BaseSubnet):
             name=node.name,
             public_key=node.public_key,
             ip_address=node.get_ip(net=self)
-        ) for node in self._nodes.values()])
+        ) for node in self._nodes_dict.values()])
 
         return config
 

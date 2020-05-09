@@ -17,7 +17,7 @@ class SwarmSubnet(ldc.DockerSubnet):
         if node.cluster_host.address not in self._hosts:
             self._cluster_hosts[node.cluster_host.address] = self._hosts.pop(0)
 
-        self._nodes[ip_address] = node
+        self._nodes_dict[ip_address] = node
         if node not in self._network:
             self._network.add_node(node)
         node.add_interface(ip_address, self)

@@ -21,3 +21,14 @@ class BaseOverlay:
     def _node_subnets(self, node):
         """get node subnets that have other nodes from overlay"""
         return [s for s in node.subnets if any([n in s for n in self._nodes if n is not node])]
+
+    def _neighbors_ips(self, node):
+
+        ips = []
+
+        for subnet in node.subnets:
+            for ip, n in subnet.get_nodes_dict().items():
+                if n in self and n is not node:
+                    ips.append(ip)
+
+        return ips

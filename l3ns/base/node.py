@@ -85,6 +85,10 @@ class BaseNode:
     def subnets(self):
         return list(self._interfaces.values())
 
+    @property
+    def neighbors(self):
+        return sum([subnet.nodes for subnet in self.subnets])
+
     def add_network(self, net):
         self._networks.append(net)
 

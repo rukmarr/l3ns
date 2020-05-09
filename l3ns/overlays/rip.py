@@ -1,6 +1,7 @@
 from .base import BaseOverlay
 
 config_template = '''router rip
+
 {}
 
 redistribute kernel
@@ -14,6 +15,6 @@ class RipOverlay(BaseOverlay):
     protocol = 'RIP'
 
     def configure_node(self, node):
-        config = config_template.format('\n'.join(['network {}'.format(s) for s in self._node_subnets(node)]))
+        config = config_template.format('\n'.join(['neighbor {}'.format(s) for s in self._neighbors_ips(node)]))
 
         node.activate_protocol(self.protocol, config)

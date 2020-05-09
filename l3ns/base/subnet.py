@@ -14,7 +14,7 @@ class BaseSubnet:
         self._ip_range = self._network.get_subnet_range(self._max_size)
         self._hosts = list(self._ip_range.hosts())
 
-        self._nodes = {}
+        self._nodes_dict = {}
         self.started = False
         self.loaded = False
 
@@ -22,7 +22,7 @@ class BaseSubnet:
             self.add_node(node)
 
     def __iter__(self):
-        return iter(self._nodes)
+        return iter(self._nodes_dict)
 
     def _get_host_ip(self):
         try:
@@ -34,7 +34,7 @@ class BaseSubnet:
 
         ip_address = self._get_host_ip()
 
-        self._nodes[ip_address] = node
+        self._nodes_dict[ip_address] = node
         if node not in self._network:
             self._network.add_node(node)
         node.add_interface(ip_address, self)
@@ -54,7 +54,7 @@ class BaseSubnet:
     def get_gateway(self, node):
         router = None
 
-        for ip, n in self._nodes.items():
+        for ip, n in self._nodes_dict.items():
 
             if n is node:
                 continue
@@ -67,11 +67,25 @@ class BaseSubnet:
 
         return router
 
+    def get_nodes_dict(self):
+        return self._nodes_dict.copy()
+
     def prefixlen(self):
         return self._ip_range.prefixlen
 
     def get_ip_range(self):
         return self._ip_range
+
+    @property
+    def nodes(self):
+        return list(self._nodes_dict.values())
+
+    def get_node_ip(self, node):
+        for ip, n in self._nodes_dict.items():
+            if n is node:
+                return ip
+
+        raise Exception('Node is not in subnet')
 
     def __repr__(self):
         return '{class_name}({name}, {ip_range})'.format(
@@ -81,7 +95,7 @@ class BaseSubnet:
         )
 
     def __contains__(self, item):
-        return item in self._nodes.values()
+        return item in self._nodes_dict.values()
 
     def __str__(self):
         return str(self._ip_range)

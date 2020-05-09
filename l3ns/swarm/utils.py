@@ -64,7 +64,7 @@ class SwarmHost(cluster.ClusterHost):
                 self.new_swarm = True
                 return
 
-        raise Exception("Couldn't join the swarm, docker output:\n" + ret.stdout)
+        raise Exception("Couldn't start the swarm:\n" + ret.stdout)
 
     @staticmethod
     def _find_token(s):
@@ -79,7 +79,9 @@ class SwarmHost(cluster.ClusterHost):
     @staticmethod
     def _get_manager_ip():
         # TODO: socket?? hostname?? I dunno
-        return '192.168.122.119'
+        # the address must be from one of the interfaces, visible from other hosts
+        # return '192.168.122.119' # baas test
+        return '172.27.217.73'
 
 # new swarm no swarm       - v
 # old swarm no swarm       - v
