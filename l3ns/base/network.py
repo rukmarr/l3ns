@@ -14,14 +14,14 @@ class Network:
         self.ip_range = str(ip_range)
         self._available_subnets = [ip_network(ip_range) if type(ip_range) is str else ip_range, ]
         self._subnets = set()
-        self._nodes = set()
+        self._nodes = []
         self.is_local = local
 
         self.loaded = False
         self.started = False
 
     def add_node(self, node):
-        self._nodes.add(node)
+        self._nodes.append(node)
         node.add_network(self)
 
     def add_subnet(self, subnet):
@@ -69,7 +69,8 @@ class Network:
                 node.start()
 
             for node in self._nodes:
-                node.unlock()
+                # node.unlock()
+                pass
 
             self.started = True
             self.loaded = True
@@ -88,22 +89,22 @@ class Network:
             if i[0] == 'y':
                 self.stop()
 
-    def load(self):
+    def load(self, *args):
         for node in self._nodes:
-            node.load()
+            node.load(*args)
 
         for subnet in self._subnets:
-            subnet.load()
+            subnet.load(*args)
 
-    def stop(self):
+    def stop(self, *args):
         if not self.loaded:
-            self.load()
+            self.load(*args)
 
         for node in self._nodes:
-            node.stop()
+            node.stop(*args)
 
         for subnet in self._subnets:
-            subnet.stop()
+            subnet.stop(*args)
 
     def __contains__(self, item):
         return item in self._nodes or item in self._subnets
@@ -132,8 +133,14 @@ class NetworkConcurrent(Network):
             print('start time:', time.strftime('[%H:%M:%S]', time.gmtime()))
 
             # TODO: executor here too
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                for node in self._nodes:
+                    executor.submit(node.unlock)
+            '''
             for node in self._nodes:
                 node.unlock()
+            '''
+
 
             self.started = True
             self.loaded = True

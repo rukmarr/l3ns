@@ -60,16 +60,24 @@ class ClusterHost:
 
         self.sftp = self.ssh.open_sftp()
 
-        while not self.test_client():
+        timeout = 60
+        while not self.test_client() and timeout > 0:
             time.sleep(0.5)
+            timeout -= 0.5
 
-    def get_docker_client(self) -> docker.DockerClient:
-        return docker.DockerClient(base_url='tcp://127.0.0.1:{}'.format(self.docker_port))
+        self._client = self.get_docker_client(cached=False)
+
+
+    def get_docker_client(self, cached=True) -> docker.DockerClient:
+        if cached:
+            return self._client
+        else:
+            return docker.DockerClient(base_url='tcp://127.0.0.1:{}'.format(self.docker_port))
 
     def test_client(self):
 
         try:
-            self.get_docker_client().version()
+            self.get_docker_client(cached=False).version()
             return True
         except:
             return False

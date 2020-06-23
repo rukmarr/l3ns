@@ -55,13 +55,13 @@ class DockerNode(base.BaseNode):
             ret_cmd += self._shell_entrypoint(entrypoint[2:])
 
             if cmd:
-                ret_cmd += self._shell_entrypoint(cmd)
+                ret_cmd += ' ' + self._shell_entrypoint(cmd)
 
         else:
             ret_cmd += self._shell_entrypoint(entrypoint)
 
             if cmd:
-                ret_cmd += self._shell_entrypoint(cmd)
+                ret_cmd += ' ' + self._shell_entrypoint(cmd)
 
         # for some reason docker messes up while loop if cmd is a string
         return ret_entrypoint, [ret_cmd]
