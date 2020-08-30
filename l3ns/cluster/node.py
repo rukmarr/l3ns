@@ -81,3 +81,10 @@ class RemoteNode(ldc.DockerNode):
         else:
 
             raise Exception("Unexpected network type: " + network.name)
+
+    def __repr__(self):
+        return '<{class_name}({name}@{hostname}, {ip})'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            ip=self.get_ip(),
+            hostname=self.cluster_host.address)

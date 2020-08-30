@@ -131,6 +131,7 @@ class BaseNode:
 
     def unlock(self):
         # TODO: not the best decision, but we need to avoid starting container before routes are set up
+        print(f'unlocking {self.name}')
         self.put_string(self.lock_filepath, '')
 
     def put_string(self, path, string):

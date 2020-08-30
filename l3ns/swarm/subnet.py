@@ -14,7 +14,7 @@ class SwarmSubnet(ldc.DockerSubnet):
         ip_address = self._get_host_ip()
 
         # docker swarm overlay requires additional ip address for lode balancer each cluster node (cluster_host in l3ns)
-        if node.cluster_host.address not in self._hosts:
+        if not isinstance(node, ldc.DockerNode) and node.cluster_host.address not in self._hosts:
             self._cluster_hosts[node.cluster_host.address] = self._hosts.pop(0)
 
         self._nodes_dict[ip_address] = node
