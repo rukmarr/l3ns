@@ -20,21 +20,33 @@ class SwarmHost(cluster.ClusterHost):
 
         dc = self.get_docker_client()
 
-        if not self.new_swarm:
+        if not self.new_swarm and self._check_if_in_swarm():
+            return
 
-            # check if node in swarm if one exists
-            ret = subprocess.run(list_nodes_cmd, shell=True, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, universal_newlines=True)
-            if not ret.returncode:
-                nodes = [n.split(':') for n in ret.stdout.split('\n')]
-                for node in nodes:
-                    if self.address == node[0] and node[1] == "Ready":
-                        return
         try:
+            dc.api.join_swarm([self._get_manager_ip()], self.swarm_token)
+        except AttributeError:
             dc.join_swarm([self._get_manager_ip()], self.swarm_token)
 
-        except AttributeError:
-            dc.api.join_swarm([self._get_manager_ip()], self.swarm_token)
+    def _check_if_in_swarm(self):
+        # check if node in swarm if one exists
+        # this cmd gives us hostname of nodes in cluster
+
+        # this can also be used, but hostname'll do for now
+        # docker info --format "{{.Swarm.ControlAvailable}}"
+
+        hostname = self.exec_command('hostname')[1].strip()
+
+        ret = subprocess.run(list_nodes_cmd, shell=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, universal_newlines=True)
+        if not ret.returncode:
+            nodes = [n.split(':') for n in ret.stdout.split('\n')]
+            for node in nodes:
+                if hostname == node[0] and node[1] == "Ready":
+                    return True
+
+        return False
+
 
     def _init_swarm(self):
         ret = subprocess.run(check_swarm_cmd, shell=True, stdout=subprocess.PIPE,
@@ -81,7 +93,7 @@ class SwarmHost(cluster.ClusterHost):
         # TODO: socket?? hostname?? I dunno
         # the address must be from one of the interfaces, visible from other hosts
         # return '192.168.122.119' # baas test
-        return '172.27.217.73'
+        return '172.27.27.80'
 
 # new swarm no swarm       - v
 # old swarm no swarm       - v

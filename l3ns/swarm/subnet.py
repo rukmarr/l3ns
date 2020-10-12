@@ -39,7 +39,7 @@ class SwarmSubnet(ldc.DockerSubnet):
             ipam=self._make_ipam_config())
 
         if not self.docker_network.attrs['Driver']:
-            raise Exception('Error: IPAM customisation failed for swarm network {}'.format(self.name))
+            raise Exception('Error: IPAM customisation failed for swarm network {}, check if other networks overlap ip pool'.format(self.name))
 
         self.started = True
         self.loaded = True
