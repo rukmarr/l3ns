@@ -5,8 +5,27 @@ from . import node as base_node
 
 
 class BaseSubnet:
+    """Base class for subnets representing IP subnets of the virtual networks"""
 
     def __init__(self, name: str, *args, size: int = 1024, network: 'base_network.Network' = None):
+        """Create subnet with given name and size in given Network
+
+        Names of networks need to be unique, as with Nodes.
+        Size can't be anything as long as Network has free IP addresses in pool.
+        However there is to caveats:
+        1. Some implementation must have several IP addresses reserved, for example
+        DockerNetwork reserves one IP address for virtual bridge interface.
+        This will increase network size.
+        2. Actual subnet IP address size must be a power of two. So actual size of network will be
+        increase to a nearest power of two.
+
+        Args:
+            name: name for new subnet
+            *args: nodes to add to the new network
+            size: Optional; size of a new network
+            network: Optional; as the name implies every subnet lies in some network.
+                     If network is not provided, l3ns.defaults.network will be used.
+        """
         self.name = name
         self._network = network if network is not None else defaults.network
         self._network.add_subnet(self)
@@ -31,6 +50,12 @@ class BaseSubnet:
             raise Exception('Network {} is too small'.format(self.name))
 
     def add_node(self, node: 'base_node.BaseNode'):
+        """Add node to the network
+
+        This is a main method to define network structure.
+        This will add node to network, in create interface in node with an
+        IP address from this subnet.
+        """
 
         ip_address = self._get_host_ip()
 
@@ -40,18 +65,33 @@ class BaseSubnet:
         node.add_interface(ip_address, self)
 
     def start(self):
+        """Subnet starting procedure to be implemented in resource-specific classed, like DockerSubnet"""
         raise NotImplementedError()
 
     def load(self):
+        """Subnet loading procedure to be implemented in resource-specific classed, like DockerSubnet"""
         raise NotImplementedError()
 
     def stop(self):
+        """Subnet stopping procedure to be implemented in resource-specific classed, like DockerSubnet"""
         raise NotImplementedError()
 
     def get_network(self):
+        """Get Network this subnet resides in."""
         return self._network
 
     def get_gateway(self, node):
+        """Get default gateway for this network
+
+        If this subnet resides in a local network and has LAN gateway
+        (i.e. Node that belongs both to local and wide area networks and
+        has NAT protocol configured), than lan gateway will be used
+        as default gateway.
+        If there is no LAN gateway in the subnet, random router
+        will be used as default gateway.
+        If there is no LAN gateway and no router in the subnet, function
+        will return None
+        """
         router = None
 
         for ip, n in self._nodes_dict.items():
@@ -68,16 +108,20 @@ class BaseSubnet:
         return router
 
     def get_nodes_dict(self):
+        """Get nodes in a dict with IP addresses as keys"""
         return self._nodes_dict.copy()
 
     def prefixlen(self):
+        """Get subnet IP address prefix length"""
         return self._ip_range.prefixlen
 
     def get_ip_range(self):
+        """Get subnet IP address,"""
         return self._ip_range
 
     @property
     def nodes(self):
+        """Get a list of subnet's nodes"""
         return list(self._nodes_dict.values())
 
     def get_node_ip(self, node):
