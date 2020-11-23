@@ -180,7 +180,7 @@ Create subnet that connects this node to another
 
 Create a subnet with that will consist of two nodes. You can specify
 specific subnet class and name. If not, name will be generated automatically
-and subnet class will be retrieved from [defaults](l3ns.defaults).
+and subnet class will be retrieved from [defaults](l3ns/defaults).
 
 **Arguments**:
 
@@ -310,7 +310,7 @@ increase to a nearest power of two.
 Add node to the network
 
 This is a main method to define network structure.
-This will add node to network, in create interface in node with an
+This will also add node to subnet's network, create interface in node with an
 IP address from this subnet.
 
 <a name="l3ns.base.subnet.BaseSubnet.start"></a>
@@ -403,4 +403,17 @@ Get subnet IP address,
 ```
 
 Get a list of subnet's nodes
+
+<a name="l3ns.defaults"></a>
+# l3ns.defaults
+
+<a name="l3ns.defaults.network"></a>
+#### network
+
+Default network for all Subnets
+
+<a name="l3ns.defaults.subnet_class"></a>
+#### subnet\_class
+
+Default subnet class for Node.connect_to and Network.create_subnet
 

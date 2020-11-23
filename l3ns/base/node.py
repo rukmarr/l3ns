@@ -6,14 +6,13 @@ class BaseNode:
     """Base class for Nodes representing computers in virtual networks"""
     lock_filepath = '/var/run/l3ns.lock'
 
-    def __init__(self, name, internet_connection=False):
+    def __init__(self, name):
         """Create node
 
         Create basic node with black configuration.
 
         Args:
              name: unique identifier for new node
-             internet_connection: Optional; whether node should be able th connect to internet
         """
         self.name = name
         self._interfaces = {}
@@ -25,7 +24,7 @@ class BaseNode:
         self.started = False
         self.is_router = False
         self.is_gateway = False
-        self.connect_to_internet = internet_connection
+        self.connect_to_internet = False
 
     def connect_to(self,
                    other_node: 'BaseNode',
@@ -36,7 +35,7 @@ class BaseNode:
 
         Create a subnet with that will consist of two nodes. You can specify
         specific subnet class and name. If not, name will be generated automatically
-        and subnet class will be retrieved from [defaults](l3ns.defaults).
+        and subnet class will be retrieved from [defaults](l3ns/defaults).
 
         Args:
             other_node: Node to connect

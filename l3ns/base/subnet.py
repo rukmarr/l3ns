@@ -53,7 +53,7 @@ class BaseSubnet:
         """Add node to the network
 
         This is a main method to define network structure.
-        This will add node to network, in create interface in node with an
+        This will also add node to subnet's network, create interface in node with an
         IP address from this subnet.
         """
 

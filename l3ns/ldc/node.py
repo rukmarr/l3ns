@@ -2,7 +2,6 @@ import docker
 import tarfile
 import io
 import os
-import time
 
 from .. import base
 from . import utils
@@ -203,3 +202,8 @@ class DockerNode(base.BaseNode):
         self._docker_kwargs['entrypoint'] = cmd + self._docker_kwargs['entrypoint']
 
         self.put_string('/etc/frr/{}.conf'.format(daemon_name), config)
+
+    def exec_run(self, *args, **kwargs):
+        """See https://docker-py.readthedocs.io/en/stable/containers.html#docker.models.containers.Container.exec_run"""
+        return self.container.exec_run(*args, **kwargs)
+
