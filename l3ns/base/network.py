@@ -61,7 +61,7 @@ class Network:
                 node.start()
 
             for node in self._nodes:
-                # node.unlock()
+                node.unlock()
                 pass
 
             self.started = True
