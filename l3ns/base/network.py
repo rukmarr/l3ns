@@ -154,6 +154,13 @@ class Network:
         self._available_subnets.sort(key=lambda n: 32 - n.prefixlen)
 
         return smaller_subnet
+    
+    def __enter__(self):
+        self.start()
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
 
 
 class NetworkConcurrent(Network):
