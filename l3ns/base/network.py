@@ -11,7 +11,14 @@ import time
 
 class Network:
     """Base class for forming local and wide area networks"""
-
+    def __enter__(self):
+        #ttysetattr etc goes here before opening and returning the file object
+        self.start()
+        return self
+    def __exit__(self, type, value, traceback):
+        #Exception handling here
+        self.close()
+        
     def __init__(self, ip_range: Union[str, IPv4Network], local=False):
         """Creates network with given ip range.
 
