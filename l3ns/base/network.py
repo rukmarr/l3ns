@@ -1,12 +1,15 @@
 from ipaddress import ip_network, IPv4Network
 from math import log2, ceil
-from typing import Union
+from typing import Union, Optional, TYPE_CHECKING, List
 from .. import defaults
 
 import concurrent.futures
 import traceback
 
 import time
+
+if TYPE_CHECKING:
+    from .node import BaseNode
 
 
 class Network:
@@ -26,8 +29,9 @@ class Network:
         self.ip_range = str(ip_range)
         self._available_subnets = [ip_network(ip_range) if type(ip_range) is str else ip_range, ]
         self._subnets = set()
-        self._nodes = []
+        self._nodes: List[BaseNode] = []
         self.is_local = local
+        self.lan_gateway: Optional['BaseNode'] = None
 
         self.loaded = False
         self.started = False
@@ -58,11 +62,12 @@ class Network:
                 subnet.start()
 
             for node in self._nodes:
-                node.start()
+                if node is not self.lan_gateway:
+                    node.start()
 
             for node in self._nodes:
-                node.unlock()
-                pass
+                if node is not self.lan_gateway:
+                    node.unlock()
 
             self.started = True
             self.loaded = True
@@ -106,10 +111,13 @@ class Network:
             self.load(*args)
 
         for node in self._nodes:
-            node.stop(*args)
+            if node is not self.lan_gateway:
+                node.stop(*args)
 
         for subnet in self._subnets:
             subnet.stop(*args)
+
+        self.started = False
 
     def __contains__(self, item):
         return item in self._nodes or item in self._subnets
@@ -154,7 +162,10 @@ class Network:
         self._available_subnets.sort(key=lambda n: 32 - n.prefixlen)
 
         return smaller_subnet
-    
+
+    def connect_lan(self, lan_network: 'Network', gateway: 'BaseNode'):
+        return gateway.crete_gateway(lan_network, self)
+
     def __enter__(self):
         self.start()
         return self
@@ -191,11 +202,9 @@ class NetworkConcurrent(Network):
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 for node in self._nodes:
                     executor.submit(node.unlock)
-            '''
+
             for node in self._nodes:
                 node.unlock()
-            '''
-
 
             self.started = True
             self.loaded = True
@@ -225,3 +234,5 @@ class NetworkConcurrent(Network):
 
         for subnet in self._subnets:
             subnet.stop()
+
+        self.started = False

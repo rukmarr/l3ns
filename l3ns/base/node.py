@@ -1,5 +1,11 @@
+from typing import List, TYPE_CHECKING
+
 from .. import defaults
 from . import subnet as base_subnet
+
+if TYPE_CHECKING:
+    from .network import Network
+    from .subnet import BaseSubnet
 
 
 class BaseNode:
@@ -17,14 +23,19 @@ class BaseNode:
         self.name = name
         self._interfaces = {}
         self._routes = {}
-        self._networks = []
+        self._networks: List['Network'] = []
         self._files = {}
 
         self.loaded = False
         self.started = False
+        self.stopped = False
         self.is_router = False
-        self.is_gateway = False
+        self._gateways = {}
         self.connect_to_internet = False
+
+    @property
+    def is_gateway(self):
+        return bool(self._gateways)
 
     def connect_to(self,
                    other_node: 'BaseNode',
@@ -60,6 +71,23 @@ class BaseNode:
         """
         self._interfaces[ip_address] = subnet
 
+    def crete_gateway(self, from_network: 'Network', to_network: 'Network'):
+        """Create a gateway from from_network to to_network on this node
+
+        From_network is always a local network and
+        to_network can be global or local.
+        Gateway node needs to be connected to at least one subnet
+        in each network before calling this function.
+        """
+        if not from_network.is_local:
+            raise Exception('from_network must be local!')
+
+        if from_network not in self._networks or to_network not in self._networks:
+            raise Exception('Gateway node needs to be connected to at least one subnet in each network')
+
+        from_network.lan_gateway = self
+        self._gateways[from_network] = to_network
+
     def _start(self, *args, **kwargs):
         """Start function to be implemented in resource-specific classed, like DockerNode"""
 
@@ -73,15 +101,46 @@ class BaseNode:
         after that Node._connect_subnets connects node to it's subnets and
         Node._deploy_routes sets up node's routes.
         """
-        self._setup_routes()
+
+        if self.started:
+            return
 
         ret = self._start(*args, **kwargs)
+        self.started = True
         print('node', self.name, 'started')
+
+        self._setup_routes()
+        if self.is_gateway:
+            for network in self._networks:
+                if self is network.lan_gateway and not network.started:
+                    network.start()
 
         self._connect_subnets()
         self._deploy_routes()
+        if self.is_gateway:
+            self._setup_lan_gateway()
 
         return ret
+
+    def _stop(self, *args, **kwargs):
+        """Stop function to be implemented in resource-specific classed, like DockerNode"""
+
+        raise NotImplementedError()
+
+    def stop(self, *args, **kwargs):
+        """
+        Stop function called from Network.start
+        """
+        if self.stopped:
+            return
+
+        self._stop(*args, **kwargs)
+        self.stopped = True
+
+        if self.is_gateway:
+            for network in self._networks:
+                if self is network.lan_gateway:
+                    network.stop()
 
     def _connect_subnets(self):
         for ip, network in self._interfaces.items():
@@ -93,42 +152,75 @@ class BaseNode:
         raise NotImplementedError()
 
     def _setup_routes(self):
-        max_routes_number = len(self._networks)
+        for network in sorted(self._networks, key=lambda n: n.is_local, reverse=True):
 
-        # TODO: LAN routes for routers
-        if self.is_router:
-            return
+            # for routes we can only find neighbor gateway
+            # intentionally not doing this for nodes
+            if self.is_router and network.is_local:
+                for subnet in self.subnets:
+                    if network.lan_gateway in subnet:
+                        for ip_range in network.lan_gateway.get_gateway_ranges():
+                            if ip_range not in self._routes:
+                                self._routes[ip_range] = network.lan_gateway.get_ip(subnet)
 
-        for subnet in self.subnets:
-            network = subnet.get_network()
+            # for gateways and nodes find neighbor router (or gateway for plain node)
+            elif not self.is_router:
 
-            ip_range = network.ip_range \
-                if self.connect_to_internet or network.is_local else 'default'
+                ip_ranges = ['default', ]
+                if network.is_local:
+                    if self == network.lan_gateway:
+                        ip_ranges = [network.ip_range, ]
 
-            if ip_range in self._routes:
-                continue
+                    elif self.connect_to_internet or 'default' in self._routes:
+                        ip_ranges = network.lan_gateway.get_gateway_ranges()
 
-            gateway = subnet.get_gateway(self)
-            if gateway:
-                self._routes[ip_range] = gateway
+                elif self.connect_to_internet:
+                    ip_ranges = [network.ip_range, ]
 
-            if len(self._routes) == max_routes_number:
-                return
+                for subnet in self.subnets:
+                    if subnet in network:
+                        gateway = subnet.get_gateway(self)
+                        if gateway:
+                            for ip_range in ip_ranges:
+                                if ip_range not in self._routes:
+                                    self._routes[ip_range] = gateway
+
+    def get_gateway_ranges(self):
+        """Returns ip ranges for all the networks accessible via this gateway"""
+        if self.is_gateway:
+            return sum(
+                [
+                    network.ip_range,
+                    *(network.lan_gateway.get_gateway_ranges() if network.lan_gateway else [])
+                ] for network in self._networks
+                if self is not network.lan_gateway
+            )
+        else:
+            return []
 
     def _deploy_routes(self):
         """Function deploing routing information in node resources
         to be implemented in resource-specific classed, like DockerNode"""
         raise NotImplementedError()
 
+    def _setup_lan_gateway(self):
+        """Function setting up LAN gateway on this node
+        to be implemented in resource-specific classed, like DockerNode"""
+        raise NotImplementedError()
+
     @property
-    def subnets(self):
+    def subnets(self) -> List['BaseSubnet']:
         return list(self._interfaces.values())
 
     @property
     def neighbors(self):
         return sum([subnet.nodes for subnet in self.subnets])
 
-    def add_network(self, net):
+    def add_network(self, net: 'Network'):
+        if net in self._networks:
+            return
+        if not net.is_local and any(filter(lambda n: not n.is_local, self._networks)):
+            raise Exception('Node cannot reside in two global networks at the same time!')
         self._networks.append(net)
 
     def load(self):
@@ -184,8 +276,13 @@ class BaseNode:
 
         """
         # TODO: not the best decision, but we need to avoid starting container before routes are set up
-        print(f'unlocking {self.name}')
+        # temporary bypass
+        """
+        # print(f'unlocking {self.name}')
         self.put_string(self.lock_filepath, '')
+        """
+        pass
+
 
     def put_string(self, path, string):
         """Put sting in file on node"""

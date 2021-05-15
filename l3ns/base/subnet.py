@@ -3,6 +3,10 @@ from .. import utils
 from . import network as base_network
 from . import node as base_node
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .network import Network
 
 class BaseSubnet:
     """Base class for subnets representing IP subnets of the virtual networks"""
@@ -76,21 +80,14 @@ class BaseSubnet:
         """Subnet stopping procedure to be implemented in resource-specific classed, like DockerSubnet"""
         raise NotImplementedError()
 
-    def get_network(self):
+    def get_network(self) -> 'Network':
         """Get Network this subnet resides in."""
         return self._network
 
     def get_gateway(self, node):
         """Get default gateway for this network
 
-        If this subnet resides in a local network and has LAN gateway
-        (i.e. Node that belongs both to local and wide area networks and
-        has NAT protocol configured), than lan gateway will be used
-        as default gateway.
-        If there is no LAN gateway in the subnet, random router
-        will be used as default gateway.
-        If there is no LAN gateway and no router in the subnet, function
-        will return None
+        Returns default gateway (not LAN gateway) for nodes in this subnet
         """
         router = None
 
@@ -98,9 +95,6 @@ class BaseSubnet:
 
             if n is node:
                 continue
-
-            if n.is_gateway:
-                return ip
 
             if not router and n.is_router:
                 router = ip

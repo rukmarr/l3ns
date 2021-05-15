@@ -134,7 +134,7 @@ class DockerNode(base.BaseNode):
         except docker.errors.NotFound:
             pass
 
-    def stop(self, dc=None):
+    def _stop(self, dc=None):
 
         dc = dc or self._client
 
@@ -180,6 +180,16 @@ class DockerNode(base.BaseNode):
             status_code, output = self.container.exec_run('ip route add {} via '.format(ip_range) + gateway)
             if status_code:
                 print('Error({2}) while setting routes for {0}:\n{1}'.format(self.name, output.decode(), status_code))
+
+    def _setup_lan_gateway(self):
+        pass
+        # TODO: finish this
+        for from_network, to_network in self._gateways:
+            cmd = f"""
+            iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+            iptables -A FORWARD -i eth0 -o eth1 -m state --state RELATED,ESTABLISHED -j ACCEPT
+            iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
+            """
 
     @classmethod
     def make_router(cls, *args, **kwargs):
