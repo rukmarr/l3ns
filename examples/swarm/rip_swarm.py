@@ -6,8 +6,8 @@ from l3ns.overlays.rip import RipOverlay
 
 defaults.network = Network('15.0.0.0/8')
 
-host1 = SwarmHost('t2')
-host2 = SwarmHost('t3')
+host1 = SwarmHost('swarm2', login='ubuntu')
+host2 = SwarmHost('swarm3', login='ubuntu')
 
 routers = SwarmNode.generate_routers('router', 2, host1)
 router_net = DockerSubnet('router_net', routers, size=4, docker_client=host1.get_docker_client())

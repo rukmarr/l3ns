@@ -30,7 +30,7 @@ class BaseNode:
         self.started = False
         self.stopped = False
         self.is_router = False
-        self._gateways = {}
+        self._gateways = []
         self.connect_to_internet = False
 
     @property
@@ -86,7 +86,7 @@ class BaseNode:
             raise Exception('Gateway node needs to be connected to at least one subnet in each network')
 
         from_network.lan_gateway = self
-        self._gateways[from_network] = to_network
+        self._gateways.append((from_network, to_network))
 
     def _start(self, *args, **kwargs):
         """Start function to be implemented in resource-specific classed, like DockerNode"""
@@ -159,7 +159,7 @@ class BaseNode:
             if self.is_router and network.is_local:
                 for subnet in self.subnets:
                     if network.lan_gateway in subnet:
-                        for ip_range in network.lan_gateway.get_gateway_ranges():
+                        for ip_range in network.lan_gateway.get_gateway_ranges(network):
                             if ip_range not in self._routes:
                                 self._routes[ip_range] = network.lan_gateway.get_ip(subnet)
 
@@ -172,7 +172,7 @@ class BaseNode:
                         ip_ranges = [network.ip_range, ]
 
                     elif self.connect_to_internet or 'default' in self._routes:
-                        ip_ranges = network.lan_gateway.get_gateway_ranges()
+                        ip_ranges = network.lan_gateway.get_gateway_ranges(network)
 
                 elif self.connect_to_internet:
                     ip_ranges = [network.ip_range, ]
@@ -185,15 +185,16 @@ class BaseNode:
                                 if ip_range not in self._routes:
                                     self._routes[ip_range] = gateway
 
-    def get_gateway_ranges(self):
+    def get_gateway_ranges(self, network):
         """Returns ip ranges for all the networks accessible via this gateway"""
+        # TODO: not sure if it works
         if self.is_gateway:
             return sum(
                 [
-                    network.ip_range,
-                    *(network.lan_gateway.get_gateway_ranges() if network.lan_gateway else [])
-                ] for network in self._networks
-                if self is not network.lan_gateway
+                    to_network.ip_range,
+                    *(to_network.lan_gateway.get_gateway_ranges(network) if network.lan_gateway else [])
+                ] for from_network, to_network in self._gateways
+                if from_network is network and self is not network.lan_gateway
             )
         else:
             return []
@@ -277,13 +278,13 @@ class BaseNode:
         """
         # TODO: not the best decision, but we need to avoid starting container before routes are set up
         # temporary bypass
-        """
+
         # print(f'unlocking {self.name}')
         self.put_string(self.lock_filepath, '')
-        """
-        pass
-
 
     def put_string(self, path, string):
         """Put sting in file on node"""
         raise NotImplementedError()
+
+    def in_net(self, net):
+        return net in self._networks

@@ -8,8 +8,16 @@ class SwarmNode(ldc.DockerNode):
         self.cluster_host = cluster_host
 
         super().__init__(name, **kwargs)
+        self._client = None
 
-        self._client = cluster_host.get_docker_client()
+    # TODO: move client acquisition to runtime in DockerNode too?
+    def _start(self):
+        self._client = self.cluster_host.get_docker_client()
+        return super()._start()
+
+    def load(self):
+        self._client = self.cluster_host.get_docker_client()
+        return super().load()
 
     def _connect_subnet(self, subnet, ip):
         self._client.api.connect_container_to_network(self.container.name, subnet.docker_network.name, ipv4_address=ip)

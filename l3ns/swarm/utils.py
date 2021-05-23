@@ -93,7 +93,8 @@ class SwarmHost(cluster.ClusterHost):
         # TODO: socket?? hostname?? I dunno
         # the address must be from one of the interfaces, visible from other hosts
         # return '192.168.122.119' # baas test
-        return '172.27.27.80'
+        # return '172.27.27.80'
+        return "172.31.33.20"  # EC2
 
 # new swarm no swarm       - v
 # old swarm no swarm       - v

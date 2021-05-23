@@ -65,12 +65,7 @@ class DockerNode(base.BaseNode):
         # for some reason docker messes up while loop if cmd is a string
         return ret_entrypoint, [ret_cmd]
 
-    def _start(self, dc=None):
-
-        if dc:
-            self._client = dc
-        else:
-            dc = self._client
+    def _start(self):
 
         if self.started:
             return self.container
@@ -78,7 +73,7 @@ class DockerNode(base.BaseNode):
         networking_kwargs = {}
 
         try:
-            self.image = dc.images.get(self._docker_kwargs['image'])
+            self.image = self._client.images.get(self._docker_kwargs['image'])
         except docker.errors.ImageNotFound:
             print('No {} image found locally, trying to pull...'.format(self._docker_kwargs['image']))
 
@@ -89,7 +84,7 @@ class DockerNode(base.BaseNode):
             else:
                 tag = 'latest'
 
-            self.image = dc.images.pull(image, tag=tag)
+            self.image = self._client.images.pull(image, tag=tag)
 
         self._docker_kwargs['entrypoint'], self._docker_kwargs['command'] = self._make_entrypoint()
 
@@ -103,7 +98,7 @@ class DockerNode(base.BaseNode):
 
         # print(self.name, self._docker_kwargs['entrypoint'] + self._docker_kwargs['command'], sep=': ')
 
-        self.container = dc.containers.run(
+        self.container = self._client.containers.run(
             name=self.name,
             detach=True,
             **networking_kwargs,
@@ -117,29 +112,24 @@ class DockerNode(base.BaseNode):
             raise Exception('Container {} has no initial net, check docker config')
 
         if self._interfaces or self.connect_to_internet:
-            dc.networks.get(default_net).disconnect(self.container)
+            self._client.networks.get(default_net).disconnect(self.container)
 
         for path, string in self._files.items():
             self.put_string(path, string)
 
         return self.container
 
-    def load(self, dc=None):
-
-        dc = dc or self._client
-
+    def load(self):
         try:
-            self.container = dc.containers.get(self.name)
+            self.container = self._client.containers.get(self.name)
             self.loaded = True
         except docker.errors.NotFound:
             pass
 
-    def _stop(self, dc=None):
-
-        dc = dc or self._client
+    def _stop(self):
 
         if not self.loaded:
-            self.load(dc=dc)
+            self.load()
 
         try:
             self.container.remove(force=True)
@@ -195,7 +185,7 @@ class DockerNode(base.BaseNode):
     def make_router(cls, *args, **kwargs):
 
         kwargs = kwargs.copy()
-        kwargs['image'] = 'frrouting/frr'
+        kwargs['image'] = 'frrouting/frr:v7.5.0'
         kwargs['entrypoint'] = '/usr/lib/frr/docker-start'
         # TODO: change to cap_add
         kwargs['privileged'] = True

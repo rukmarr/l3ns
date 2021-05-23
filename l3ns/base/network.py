@@ -10,6 +10,7 @@ import time
 
 if TYPE_CHECKING:
     from .node import BaseNode
+    from .subnet import BaseSubnet
 
 
 class Network:
@@ -28,8 +29,8 @@ class Network:
         """
         self.ip_range = str(ip_range)
         self._available_subnets = [ip_network(ip_range) if type(ip_range) is str else ip_range, ]
-        self._subnets = set()
-        self._nodes: List[BaseNode] = []
+        self._subnets: List['BaseSubnet'] = []
+        self._nodes: List['BaseNode'] = []
         self.is_local = local
         self.lan_gateway: Optional['BaseNode'] = None
 
@@ -122,14 +123,16 @@ class Network:
     def __contains__(self, item):
         return item in self._nodes or item in self._subnets
 
-    def add_node(self, node):
+    def add_node(self, node: 'BaseNode'):
         """Add node to the network"""
-        self._nodes.append(node)
+        if not node.in_net(node):
+            self._nodes.append(node)
         node.add_network(self)
 
     def add_subnet(self, subnet):
         """Add subnet to the network"""
-        self._subnets.add(subnet)
+        if subnet not in self._subnets:
+            self._subnets.append(subnet)
 
     def create_subnet(self, subnet_name, *args, subnet_type: type = None, **kwargs):
         """Create subnet in this network"""
