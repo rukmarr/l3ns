@@ -1,5 +1,4 @@
 import os
-import hashids
 
 from .. import ldc
 from .utils import my_hash, generate_wg_keys, ClusterHost, vpn_server_address
