@@ -9,8 +9,6 @@ class NamespaceSubnet(base.BaseSubnet):
 
         self.bridge = None
         super().__init__(*args, size=size + 1, **kwargs)
-        # minus one address for docker gateway
-        self._docker_gateway = self._get_host_ip()
 
     def start(self):
         self.bridge = self._ndb.interfaces.create(

@@ -70,9 +70,11 @@ class NamespaceNode(base.BaseNode):
 
     def _deploy_routes(self):
         for ip_range, gateway in self._routes.items():
-            status_code, output = self.container.exec_run('ip route add {} via '.format(ip_range) + gateway)
-            if status_code:
-                print('Error({2}) while setting routes for {0}:\n{1}'.format(self.name, output.decode(), status_code))
+            self._ndb.route.create(
+                dst=ip_range,
+                gateway=gateway,
+                target=self._ns_name
+            ).commit()
 
     @classmethod
     def make_router(cls, *args, **kwargs):
