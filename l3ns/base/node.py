@@ -84,6 +84,10 @@ class BaseNode:
 
         return ret
 
+    def stop(self, *args, **kwargs):
+        """Stop function to be implemented in resource-specific classed, like DockerNode"""
+        raise NotImplementedError()
+
     def _connect_subnets(self):
         for ip, network in self._interfaces.items():
             self._connect_subnet(network, ip)

@@ -85,7 +85,7 @@ class BaseSubnet:
 
         If this subnet resides in a local network and has LAN gateway
         (i.e. Node that belongs both to local and wide area networks and
-        has NAT protocol configured), than lan gateway will be used
+        has NAT protocol configured), lan gateway will be used
         as default gateway.
         If there is no LAN gateway in the subnet, random router
         will be used as default gateway.
